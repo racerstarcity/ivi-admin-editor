@@ -165,10 +165,11 @@ class App(tk.Tk):
                 panel.video_play(t)
             elif cmd == "pause":
                 panel.video_pause(t)
-            dur = _sync_state.pop("duration", None)
-            if dur is not None and dur > 0:
-                if not panel._data.get("duration"):
+            if not panel._data.get("duration"):
+                dur = _sync_state.get("duration")
+                if dur is not None and dur > 0:
                     panel._data["duration"] = int(dur)
+                    _sync_state.pop("duration", None)
                     panel._sync_markers()
                     panel._update_summary()
                     panel._add_log(f"Длительность: {panel._format_time(int(dur))} (авто)")
