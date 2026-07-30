@@ -3,7 +3,7 @@
 
 [Setup]
 AppName=IVI Admin Editor
-AppVersion=2.0
+AppVersion=2.1
 AppPublisher=Кравченко И.В.
 AppPublisherURL=https://ivi.ru
 DefaultDirName={autopf}\IVI Admin Editor
