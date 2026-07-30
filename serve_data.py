@@ -249,7 +249,7 @@ class MarkersPanel(tk.Toplevel):
 
         self._data = self._load_markers()
         self._template = self._load_template()
-        self._last_action = None
+        self._undo_stack = []
         self._timer_job = None
         self._sync_markers()
 
@@ -559,13 +559,13 @@ class MarkersPanel(tk.Toplevel):
         self._add_log("↺ Сброс таймера")
 
     def _save_action(self, action, value):
-        self._last_action = (action, value)
+        self._undo_stack.append((action, value))
 
     def undo(self):
-        if self._last_action is None:
+        if not self._undo_stack:
             self._add_log("↩ Нет действий для отмены")
             return
-        action, value = self._last_action
+        action, value = self._undo_stack.pop()
         if action == "midroll":
             if self._data["midrolls"]:
                 removed = self._data["midrolls"].pop()
@@ -588,13 +588,12 @@ class MarkersPanel(tk.Toplevel):
         elif action == "duration":
             self._data["duration"] = 0
             self._add_log("↩ Отменено: длительность")
-        self._last_action = None
         self._update_summary()
         self._sync_markers()
 
     def clear_all(self):
         self._data = {"midrolls": [], "start_scale": 0, "finish_scale": 0, "start_prev": 0, "finish_prev": 0, "postroll": 0, "duration": 0}
-        self._last_action = None
+        self._undo_stack.clear()
         self._update_summary()
         self._add_log("✕ Все метки очищены")
         self._sync_markers()
