@@ -48,6 +48,12 @@ class Handler(BaseHTTPRequestHandler):
                         _sync_state["time"] = float(t[0])
                     except:
                         pass
+                dur = qs.get("duration")
+                if dur:
+                    try:
+                        _sync_state["duration"] = float(dur[0])
+                    except:
+                        pass
                 _sync_state["cmd"] = "play" if is_play else state
                 data = {"ok": True, "play": _sync_state["play"]}
         elif path == "/":
@@ -159,6 +165,13 @@ class App(tk.Tk):
                 panel.video_play(t)
             elif cmd == "pause":
                 panel.video_pause(t)
+            dur = _sync_state.pop("duration", None)
+            if dur is not None and dur > 0:
+                if not panel._data.get("duration"):
+                    panel._data["duration"] = int(dur)
+                    panel._sync_markers()
+                    panel._update_summary()
+                    panel._add_log(f"Длительность: {panel._format_time(int(dur))} (авто)")
             key = _sync_state.pop("key", None)
             if key:
                 kt = _sync_state.pop("key_time", 0)

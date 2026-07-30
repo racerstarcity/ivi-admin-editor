@@ -150,9 +150,10 @@
 (function() {
   var lastSent = 0;
 
-  function sync(state, time) {
+  function sync(state, time, duration) {
     var url = 'http://localhost:8766/sync?state=' + encodeURIComponent(state);
     if (time !== undefined) url += '&time=' + Math.floor(time);
+    if (duration !== undefined) url += '&duration=' + Math.floor(duration);
     fetch(url).catch(function(e) {
       console.error('ivi-sync error:', e);
     });
@@ -162,24 +163,31 @@
     if (video.dataset.iviSync) return;
     video.dataset.iviSync = '1';
 
-    // Send initial state
-    sync(video.paused ? 'pause' : 'play', video.currentTime);
+    var sendWithDuration = function(state, time) {
+      sync(state, time, video.duration || undefined);
+    };
 
+    // Send initial state with duration
+    sendWithDuration(video.paused ? 'pause' : 'play', video.currentTime);
+
+    video.addEventListener('loadedmetadata', function() {
+      sendWithDuration(video.paused ? 'pause' : 'play', video.currentTime);
+    });
     video.addEventListener('play', function() {
-      sync('play', video.currentTime);
+      sendWithDuration('play', video.currentTime);
     });
     video.addEventListener('pause', function() {
-      sync('pause', video.currentTime);
+      sendWithDuration('pause', video.currentTime);
     });
     video.addEventListener('seeked', function() {
-      sync(video.paused ? 'pause' : 'seek', video.currentTime);
+      sendWithDuration(video.paused ? 'pause' : 'seek', video.currentTime);
     });
     // timeupdate as fallback for custom players
     video.addEventListener('timeupdate', function() {
       var now = Date.now();
       if (now - lastSent >= 1000) {
         lastSent = now;
-        if (!video.paused) sync('play', video.currentTime);
+        if (!video.paused) sendWithDuration('play', video.currentTime);
       }
     });
   }
