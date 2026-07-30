@@ -51,13 +51,17 @@ jobs:
           subprocess.run(['iconutil', '-c', 'icns', 'ivi.iconset', '-o', 'ivi.icns'], check=True)
           "
 
-      - name: Build with PyInstaller
+      - name: Debug - show spec file before build
+        run: cat ivi_meta_mac.spec
+
+      - name: Build with PyInstaller (onedir mode)
         run: |
-          pyinstaller ivi_meta_mac.spec
+          pyinstaller --onedir --windowed --name "IVI Admin Editor" --icon ivi.icns serve_data.py
 
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
           name: IVI-Admin-Editor-macOS
-          path: dist/IVI Admin Editor
+          path: dist/IVI Admin Editor.app
+
 
