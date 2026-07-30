@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>JS Code for Console</title></head>
+<body style="font-family:monospace;padding:20px;max-width:800px">
+<h2>Код для вставки в F12 → Console</h2>
+<p>1. Запусти <b>serve_data.exe</b><br>
+2. Открой карточку фильма в админке<br>
+3. Нажми F12 → Console<br>
+4. Вставь этот код и нажми Enter:</p>
+<textarea id="code" style="width:100%;height:400px;font-size:12px" readonly></textarea>
+<br><br>
+<button onclick="copyCode()" style="padding:10px 20px;font-size:16px;cursor:pointer">📋 Copy code</button>
+<button onclick="window.open('javascript:'+encodeURIComponent(document.getElementById('code').value))" style="padding:10px 20px;font-size:16px;cursor:pointer">🔖 Bookmarklet</button>
+
+<script>
+var code = `fetch('http://localhost:8766').then(function(r){return r.json()}).then(function(d){
+function arrow(el){
+el.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',keyCode:39,bubbles:true}));
+el.dispatchEvent(new KeyboardEvent('keyup',{key:'ArrowRight',keyCode:39,bubbles:true}));}
+function doubleArrow(el){arrow(el);arrow(el);}
+for(var i=1;i<d.midrolls.length;i++){
+var tf=document.getElementById('id_middroll-TOTAL_FORMS');
+tf.value=parseInt(tf.value)+1;
+var first=document.querySelector('.middroll_block .middroll_formset_tr');
+var row=first.cloneNode(true);
+row.querySelectorAll('[name],[id]').forEach(function(el){
+if(el.name)el.name=el.name.replace('middroll-0-','middroll-'+i+'-');
+if(el.id)el.id=el.id.replace('middroll-0-','middroll-'+i+'-');
+if(el.type=='checkbox')el.checked=false;
+if(el.type=='text'||el.type=='hidden')el.value='';});
+first.parentNode.insertBefore(row,first.nextSibling);}
+d.midrolls.forEach(function(v,i){
+var inp=document.getElementById('id_middroll-'+i+'-time');
+if(inp){inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}));doubleArrow(inp);}});
+if(d.finish_scale>0){
+var s0=document.getElementById('id_localization_labels-0-marker_type');
+if(s0){s0.value='2';s0.dispatchEvent(new Event('change',{bubbles:true}));
+document.getElementById('id_localization_labels-0-start').value=d.start_scale;arrow(document.getElementById('id_localization_labels-0-start'));
+document.getElementById('id_localization_labels-0-finish').value=d.finish_scale;arrow(document.getElementById('id_localization_labels-0-finish'));}}
+if(d.finish_prev>0){
+var tf2=document.querySelector('[name="localization_labels-TOTAL_FORMS"]');
+var n=parseInt(tf2.value);tf2.value=n+1;
+var tbody=document.querySelector('.localization_labels_tr').closest('tbody');
+var first2=tbody.querySelector('.localization_labels_tr');
+var row2=first2.cloneNode(true);
+row2.querySelectorAll('[name],[id]').forEach(function(el){
+if(el.name)el.name=el.name.replace('localization_labels-0-','localization_labels-'+n+'-');
+if(el.id)el.id=el.id.replace('localization_labels-0-','localization_labels-'+n+'-');
+if(el.type=='checkbox')el.checked=false;
+if(el.type!='select-one')el.value='';});
+tbody.appendChild(row2);
+document.getElementById('id_localization_labels-'+n+'-marker_type').value='1';
+document.getElementById('id_localization_labels-'+n+'-start').value=d.start_prev;arrow(document.getElementById('id_localization_labels-'+n+'-start'));
+document.getElementById('id_localization_labels-'+n+'-finish').value=d.finish_prev;arrow(document.getElementById('id_localization_labels-'+n+'-finish'));}
+document.getElementById('id_credits_begin_time').value=d.postroll;arrow(document.getElementById('id_credits_begin_time'));
+document.getElementById('id_duration').value=d.duration;arrow(document.getElementById('id_duration'));
+document.querySelectorAll('.localization_formset_tr').forEach(function(row){
+var lang=row.querySelector('select[name$="-localization_type"]');
+if(!lang||!lang.value)return;
+var idx=lang.name.match(/localizations-(\\d+)-/);
+if(!idx)return;
+var i=idx[1];
+var dur=row.querySelector('[name="localizations-'+i+'-duration"]');
+if(dur){dur.value=d.duration;arrow(dur);}
+var cr=row.querySelector('[name="localizations-'+i+'-credits_begin_time"]');
+if(cr){cr.value=d.postroll;arrow(cr);}
+if(d.finish_scale>0){
+var m0=row.querySelector('[name="custom_localization_labels-localizations-'+i+'-form-0-marker_type"]');
+if(m0){m0.value='2';m0.dispatchEvent(new Event('change',{bubbles:true}));
+var ms0=row.querySelector('[name="custom_localization_labels-localizations-'+i+'-form-0-start"]');
+if(ms0){ms0.value=d.start_scale;arrow(ms0);}
+var mf0=row.querySelector('[name="custom_localization_labels-localizations-'+i+'-form-0-finish"]');
+if(mf0){mf0.value=d.finish_scale;arrow(mf0);}}}
+if(d.finish_prev>0){
+var addBtn=row.querySelector('[data-action="add-inner-form"]');
+if(addBtn)addBtn.click();
+var tid='id_custom_localization_labels-localizations-'+i+'-form-TOTAL_FORMS';
+var tf3=document.getElementById(tid);
+if(tf3)tf3.value=parseInt(tf3.value)+1;
+var nestTbody=row.querySelector('.localization_markers_table tbody');
+var emptyForm=nestTbody.querySelector('.empty-form');
+var newRow=emptyForm.cloneNode(true);
+newRow.className='nested-loc-form';
+newRow.classList.remove('empty-form');
+newRow.querySelectorAll('[name],[id]').forEach(function(el){
+if(el.name)el.name=el.name.replace('__prefix__','1');
+if(el.id)el.id=el.id.replace('__prefix__','1');
+if(el.type=='checkbox')el.checked=false;
+if(el.type!='select-one')el.value='';});
+emptyForm.parentNode.insertBefore(newRow,emptyForm);
+var m1=newRow.querySelector('[name="custom_localization_labels-localizations-'+i+'-form-1-marker_type"]');
+if(m1){m1.value='1';m1.dispatchEvent(new Event('change',{bubbles:true}));
+var ms1=newRow.querySelector('[name="custom_localization_labels-localizations-'+i+'-form-1-start"]');
+if(ms1){ms1.value=d.start_prev;arrow(ms1);}
+var mf1=newRow.querySelector('[name="custom_localization_labels-localizations-'+i+'-form-1-finish"]');
+if(mf1){mf1.value=d.finish_prev;arrow(mf1);}}}});
+alert('Done!');
+}).catch(function(e){alert('Error: '+e.message)});`;
+
+document.getElementById('code').value = code;
+
+function copyCode(){
+navigator.clipboard.writeText(code).then(function(){alert('Copied! Paste into F12 Console.')});
+}
+</script>
+</body>
+</html>

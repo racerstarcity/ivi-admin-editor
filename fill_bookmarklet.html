@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Fill Admin Bookmarklet</title></head>
+<body style="font-family:sans-serif;padding:40px;max-width:600px">
+<h2>Заполнение админки из Excel</h2>
+
+<p><strong>Перетащи в закладки:</strong></p>
+<p><a id="bml" href="#" style="display:inline-block;padding:12px 24px;background:#0066cc;color:#fff;text-decoration:none;border-radius:6px;font-size:18px;font-weight:bold">
+📋 Fill from Excel
+</a></p>
+
+<h3>Как использовать</h3>
+<ol>
+<li>Запусти: <code>python serve_data.py</code></li>
+<li>Открой карточку фильма в админке</li>
+<li>Нажми на закладку <strong>"📋 Fill from Excel"</strong></li>
+</ol>
+
+<script>
+var code = JSON.parse(decodeURIComponent("%5B%22%28%66%75%6E%63%74%69%6F%6E%28%29%7B%66%65%74%63%68%28%27%68%74%74%70%3A%2F%2F%6C%6F%63%61%6C%68%6F%73%74%3A%38%37%36%36%27%29%2E%74%68%65%6E%28%72%3D%72%2E%6A%73%6F%6E%28%29%29%2E%74%68%65%6E%28%66%75%6E%63%74%69%6F%6E%28%64%29%7B%0A%2F%2F%20%CD%E8%E4%F0%EE%EB%EB%FB%0A%64%2E%6D%69%64%72%6F%6C%6C%73%2E%66%6F%72%45%61%63%68%28%28%76%2C%69%29%3D%3E%7B%0A%69%66%28%69%3E%30%29%7B%6C%65%74%20%62%74%6E%3D%64%6F%63%75%6D%65%6E%74%2E%71%75%65%72%79%53%65%6C%65%63%74%6F%72%28%27%61%5B%64%61%74%61%2D%61%63%74%69%6F%6E%3D%22%61%64%64%2D%66%6F%72%6D%73%65%74%22%5D%27%29%3B%69%66%28%62%74%6E%29%62%74%6E%2E%63%6C%69%63%6B%28%29%7D%0A%6C%65%74%20%69%6E%70%3D%64%6F%63%75%6D%65%6E%74%2E%67%65%74%45%6C%65%6D%65%6E%74%42%79%49%64%28%60%69%64%5F%6D%69%64%64%72%6F%6C%6C%2D%24%7B%69%7D%2D%74%69%6D%65%60%29%3B%0A%69%66%28%69%6E%70%29%7B%69%6E%70%2E%76%61%6C%75%65%3D%76%3B%69%6E%70%2E%64%69%73%70%61%74%63%68%45%76%65%6E%74%28%6E%65%77%20%45%76%65%6E%74%28%27%69%6E%70%75%74%27%2C%7B%62%75%62%62%6C%65%73%3A%74%72%75%65%7D%29%29%7D%0A%7D%29%3B%0A%2F%2F%20%C7%E0%F1%F2%E0%E2%EA%E0%0A%6C%65%74%20%73%65%6C%3D%64%6F%63%75%6D%65%6E%74%2E%71%75%65%72%79%53%65%6C%65%63%74%6F%72%28%27%73%65%6C%65%63%74%5B%6E%61%6D%65%24%3D%22%2D%6D%61%72%6B%65%72%5F%74%79%70%65%22%5D%27%29%3B%0A%69%66%28%73%65%6C%29%7B%73%65%6C%2E%76%61%6C%75%65%3D%27%32%27%3B%73%65%6C%2E%64%69%73%70%61%74%63%68%45%76%65%6E%74%28%6E%65%77%20%45%76%65%6E%74%28%27%63%68%61%6E%67%65%27%2C%7B%62%75%62%62%6C%65%73%3A%74%72%75%65%7D%29%29%3B%0A%6C%65%74%20%72%3D%73%65%6C%2E%63%6C%6F%73%65%73%74%28%27%74%72%27%29%3B%0A%72%2E%71%75%65%72%79%53%65%6C%65%63%74%6F%72%28%27%69%6E%70%75%74%5B%6E%61%6D%65%24%3D%22%2D%73%74%61%72%74%22%5D%27%29%2E%76%61%6C%75%65%3D%64%2E%73%74%61%72%74%5F%73%63%61%6C%65%3B%0A%72%2E%71%75%65%72%79%53%65%6C%65%63%74%6F%72%28%27%69%6E%70%75%74%5B%6E%61%6D%65%24%3D%22%2D%66%69%6E%69%73%68%22%5D%27%29%2E%76%61%6C%75%65%3D%64%2E%66%69%6E%69%73%68%5F%73%63%61%6C%65%3B%0A%7D%0A%2F%2F%20%CF%EE%F1%F2%F0%EE%EB%0A%6C%65%74%20%63%72%3D%64%6F%63%75%6D%65%6E%74%2E%67%65%74%45%6C%65%6D%65%6E%74%42%79%49%64%28%27%69%64%5F%63%72%65%64%69%74%73%5F%62%65%67%69%6E%5F%74%69%6D%65%27%29%3B%0A%69%66%28%63%72%29%7B%63%72%2E%76%61%6C%75%65%3D%64%2E%70%6F%73%74%72%6F%6C%6C%3B%63%72%2E%64%69%73%70%61%74%63%68%45%76%65%6E%74%28%6E%65%77%20%45%76%65%6E%74%28%27%69%6E%70%75%74%27%2C%7B%62%75%62%62%6C%65%73%3A%74%72%75%65%7D%29%29%7D%0A%2F%2F%20%D5%F0%EE%ED%EE%EC%E5%F2%F0%E0%E6%0A%6C%65%74%20%64%75%72%3D%64%6F%63%75%6D%65%6E%74%2E%67%65%74%45%6C%65%6D%65%6E%74%42%79%49%64%28%27%69%64%5F%64%75%72%61%74%69%6F%6E%27%29%3B%0A%69%66%28%64%75%72%29%7B%64%75%72%2E%76%61%6C%75%65%3D%64%2E%64%75%72%61%74%69%6F%6E%3B%64%75%72%2E%64%69%73%70%61%74%63%68%45%76%65%6E%74%28%6E%65%77%20%45%76%65%6E%74%28%27%69%6E%70%75%74%27%2C%7B%62%75%62%62%6C%65%73%3A%74%72%75%65%7D%29%29%7D%0A%61%6C%65%72%74%28%27%44%6F%6E%65%21%20%52%65%76%69%65%77%20%61%6E%64%20%73%61%76%65%2E%27%29%3B%0A%7D%29%2E%63%61%74%63%68%28%65%3D%3E%61%6C%65%72%74%28%27%45%72%72%6F%72%3A%20%27%2B%65%2E%6D%65%73%73%61%67%65%29%29%7D%29%28%29%22")).join("");
+document.getElementById('bml').href = 'javascript:' + code;
+</script>
+<hr>
+<p><small>Альтернатива — скопируй и вставь это в консоль (F12 → Console):</small></p>
+<pre style="background:#eee;padding:10px;overflow:auto;font-size:12px">
+fetch('http://localhost:8766').then(r=>r.json()).then(d=>{
+d.midrolls.forEach((v,i)=>{
+if(i>0){let btn=document.querySelector('a[data-action="add-formset"]');if(btn)btn.click()}
+let inp=document.getElementById(`id_middroll-${i}-time`);
+if(inp){inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}))}
+});
+let sel=document.querySelector('select[name$="-marker_type"]');
+if(sel){sel.value='2';sel.dispatchEvent(new Event('change',{bubbles:true}));
+let r=sel.closest('tr');
+r.querySelector('input[name$="-start"]').value=d.start_scale;
+r.querySelector('input[name$="-finish"]').value=d.finish_scale;}
+let cr=document.getElementById('id_credits_begin_time');
+if(cr){cr.value=d.postroll;cr.dispatchEvent(new Event('input',{bubbles:true}))}
+let dur=document.getElementById('id_duration');
+if(dur){dur.value=d.duration;dur.dispatchEvent(new Event('input',{bubbles:true}))}
+alert('Done!');}).catch(e=>alert('Error: '+e.message));
+</pre>
+</body>
+</html>

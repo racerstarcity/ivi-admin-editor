@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>IVI Timestamp Bookmarklet</title></head>
+<body style="font-family:sans-serif;padding:40px;max-width:600px">
+<h2>IVI Timestamp Capturer</h2>
+
+<p><strong>Перетащи эту ссылку в панель закладок браузера:</strong></p>
+
+<p><a id="bml" href="#" style="display:inline-block;padding:12px 24px;background:#ff6600;color:#fff;text-decoration:none;border-radius:6px;font-size:18px;font-weight:bold">
+⏱ Save Timestamp
+</a></p>
+
+<h3>Как использовать</h3>
+<ol>
+<li>Запусти Python сервер: <code>python timestamp_server.py</code></li>
+<li>Открой фильм на ivi.ru</li>
+<li>Нажми на закладку <strong>"⏱ Save Timestamp"</strong></li>
+<li>Таймкод сохранится в <code>ivi_timestamps.xlsx</code> на рабочем столе</li>
+</ol>
+
+<p>Горячая клавиша не поддерживается — только клик по закладке.</p>
+
+<script>
+var code = "(function(){var v=document.querySelector('video');if(!v){alert('Видео не найдено');return}var t=v.currentTime;var n=(document.querySelector('h1')||{}).textContent||document.title;var h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=Math.floor(t%60);var fmt=(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;fetch('http://localhost:8765/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_name:n,timestamp:t,url:location.href})}).then(function(){alert('Saved: '+fmt)}).catch(function(e){alert('Сервер не запущен\\n'+e.message)})})()";
+
+document.getElementById('bml').href = 'javascript:' + encodeURI(code);
+</script>
+</body>
+</html>

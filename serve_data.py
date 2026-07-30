@@ -233,8 +233,9 @@ class MarkersPanel(tk.Toplevel):
         super().__init__(parent)
         self.parent = parent
         self.title("Метки")
-        self.geometry("480x720")
-        self.resizable(False, False)
+        self.geometry("520x760")
+        self.minsize(400, 500)
+        self.resizable(True, True)
         self.attributes("-topmost", True)
         try:
             ico = parent._res_path("ivi.ico")
@@ -264,16 +265,14 @@ class MarkersPanel(tk.Toplevel):
         # Timer
         self.timer_var = tk.StringVar(value="00:00:00")
         tk.Label(self, textvariable=self.timer_var, font=("Segoe UI", 28, "bold"), fg="#0d6efd").pack(pady=(10, 2))
-        self.status_var = tk.StringVar(value="Пауза")
+        self.status_var = tk.StringVar(value="—")
         tk.Label(self, textvariable=self.status_var, font=("Segoe UI", 9), fg="#888").pack()
 
         # Buttons row
         btn_frame = tk.Frame(self)
         btn_frame.pack(pady=6)
         buttons = [
-            ("▸ Пауза", self.toggle_pause),
-            ("↺ Сброс", self.reset),
-            ("↩ Отм.", self.undo),
+            ("↩ Отменить", self.undo),
             ("✕ Очистить", self.clear_all),
         ]
         for text, cmd in buttons:
@@ -518,7 +517,7 @@ class MarkersPanel(tk.Toplevel):
             self.timer_var.set(self._format_time(self.elapsed))
         if not self.running:
             self.running = True
-            self.status_var.set("Запись...")
+            self.status_var.set("Воспроизведение")
             self._update_timer()
 
     def video_pause(self, time_sec):
@@ -539,24 +538,6 @@ class MarkersPanel(tk.Toplevel):
     @property
     def current_time(self):
         return int(self.elapsed * 1000) // 1000  # integer seconds
-
-    def toggle_pause(self):
-        if self.running:
-            self.video_pause(self.elapsed)
-        else:
-            self.video_play(self.elapsed)
-        self._add_log(f"{'▶' if self.running else '⏸'} Таймер: {self.status_var.get()}")
-
-    def reset(self):
-        self.running = False
-        if self._timer_job:
-            self.after_cancel(self._timer_job)
-            self._timer_job = None
-        self.elapsed = 0.0
-        self.timer_var.set("00:00:00")
-        self.status_var.set("Сброс")
-        self._update_summary()
-        self._add_log("↺ Сброс таймера")
 
     def _save_action(self, action, value):
         self._undo_stack.append((action, value))
