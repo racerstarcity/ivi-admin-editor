@@ -50,37 +50,56 @@
           if (inp) { inp.value = v; inp.dispatchEvent(new Event('input', {bubbles:true})); doubleArrow(inp); }
         });
 
-        if (d.finish_scale > 0) {
-          var s0 = document.getElementById('id_localization_labels-0-marker_type');
-          if (s0) {
-            s0.value = '2';
-            s0.dispatchEvent(new Event('change', {bubbles:true}));
-            document.getElementById('id_localization_labels-0-start').value = d.start_scale;
-            arrow(document.getElementById('id_localization_labels-0-start'));
-            document.getElementById('id_localization_labels-0-finish').value = d.finish_scale;
-            arrow(document.getElementById('id_localization_labels-0-finish'));
-          }
-        }
+        function findOrCreateLocRow(markerType, startVal, finishVal) {
+          var sel = document.querySelector('[name$="-marker_type"]');
+          if (!sel) return;
+          var prefix = sel.name.replace('-marker_type', '');
+          var baseIdx = prefix.match(/\d+$/);
+          if (!baseIdx) return;
+          var idx0 = parseInt(baseIdx[0]);
 
-        if (d.finish_prev > 0) {
-          var tf2 = document.querySelector('[name="localization_labels-TOTAL_FORMS"]');
-          var n = parseInt(tf2.value);
-          tf2.value = n + 1;
+          // Try to find existing row with this marker_type
+          var allTypes = document.querySelectorAll('[name$="-marker_type"]');
+          var existingRow = null;
+          allTypes.forEach(function(el) {
+            if (el.value == markerType) existingRow = el;
+          });
+          if (existingRow) {
+            var rowPrefix = existingRow.name.replace('-marker_type', '');
+            document.getElementById(rowPrefix + '-start').value = startVal;
+            arrow(document.getElementById(rowPrefix + '-start'));
+            document.getElementById(rowPrefix + '-finish').value = finishVal;
+            arrow(document.getElementById(rowPrefix + '-finish'));
+            return;
+          }
+
+          // Add new row
+          var tf = document.querySelector('[name="localization_labels-TOTAL_FORMS"]');
+          var n = parseInt(tf.value);
+          tf.value = n + 1;
           var tbody = document.querySelector('.localization_labels_tr').closest('tbody');
-          var first2 = tbody.querySelector('.localization_labels_tr');
-          var row2 = first2.cloneNode(true);
-          row2.querySelectorAll('[name],[id]').forEach(function(el) {
-            if (el.name) el.name = el.name.replace('localization_labels-0-', 'localization_labels-' + n + '-');
-            if (el.id) el.id = el.id.replace('localization_labels-0-', 'localization_labels-' + n + '-');
+          var first = tbody.querySelector('.localization_labels_tr');
+          var row = first.cloneNode(true);
+          row.querySelectorAll('[name],[id]').forEach(function(el) {
+            if (el.name) el.name = el.name.replace('localization_labels-' + idx0 + '-', 'localization_labels-' + n + '-');
+            if (el.id) el.id = el.id.replace('localization_labels-' + idx0 + '-', 'localization_labels-' + n + '-');
             if (el.type == 'checkbox') el.checked = false;
             if (el.type != 'select-one') el.value = '';
           });
-          tbody.appendChild(row2);
-          document.getElementById('id_localization_labels-' + n + '-marker_type').value = '1';
-          document.getElementById('id_localization_labels-' + n + '-start').value = d.start_prev;
+          tbody.appendChild(row);
+          document.getElementById('id_localization_labels-' + n + '-marker_type').value = markerType;
+          document.getElementById('id_localization_labels-' + n + '-start').value = startVal;
           arrow(document.getElementById('id_localization_labels-' + n + '-start'));
-          document.getElementById('id_localization_labels-' + n + '-finish').value = d.finish_prev;
+          document.getElementById('id_localization_labels-' + n + '-finish').value = finishVal;
           arrow(document.getElementById('id_localization_labels-' + n + '-finish'));
+        }
+
+        if (d.finish_scale > 0) {
+          findOrCreateLocRow('2', d.start_scale, d.finish_scale);
+        }
+
+        if (d.finish_prev > 0) {
+          findOrCreateLocRow('1', d.start_prev, d.finish_prev);
         }
 
         var cr = document.getElementById('id_credits_begin_time');
