@@ -55,14 +55,9 @@ jobs:
         run: |
           pyinstaller ivi_meta_mac.spec
 
-      - name: List dist contents
-        run: |
-          ls -la dist/
-          echo "---"
-          find dist/ -name "*.app" -type d
-
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
           name: IVI-Admin-Editor-macOS
-          path: dist/*.app
+          path: dist/IVI Admin Editor
+

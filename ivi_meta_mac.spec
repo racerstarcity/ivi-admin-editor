@@ -36,16 +36,8 @@ exe = EXE(
     entitlements_file=None,
 )
 
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    [],
-    name='ivi_meta',
-)
-
 app = BUNDLE(
-    coll,
+    exe,
     a.binaries,
     a.datas,
     [],
