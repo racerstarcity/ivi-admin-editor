@@ -117,36 +117,43 @@
           if (dur) { dur.value = d.duration; arrow(dur); }
           var cr2 = row.querySelector('[name="localizations-' + i + '-credits_begin_time"]');
           if (cr2) { cr2.value = d.postroll; arrow(cr2); }
-          if (d.finish_scale > 0) {
-            var m0 = row.querySelector('[name="custom_localization_labels-localizations-' + i + '-form-0-marker_type"]');
-            if (m0) {
-              m0.value = '2';
-              m0.dispatchEvent(new Event('change', {bubbles:true}));
-              var ms0 = row.querySelector('[name="custom_localization_labels-localizations-' + i + '-form-0-start"]');
-              if (ms0) { ms0.value = d.start_scale; arrow(ms0); }
-              var mf0 = row.querySelector('[name="custom_localization_labels-localizations-' + i + '-form-0-finish"]');
-              if (mf0) { mf0.value = d.finish_scale; arrow(mf0); }
+          function findInnerLocRow(row, markerType, startVal, finishVal) {
+            var innerSel = row.querySelector('[name^="custom_localization_labels-localizations-' + i + '-form-"][name$="-marker_type"]');
+            if (!innerSel) return;
+            var existing = null;
+            row.querySelectorAll('[name^="custom_localization_labels-localizations-' + i + '-form-"][name$="-marker_type"]').forEach(function(el) {
+              if (el.value == markerType) existing = el;
+            });
+            if (existing) {
+              var p = existing.name.replace('-marker_type', '');
+              var inpS = row.querySelector('[name="' + p + '-start"]');
+              if (inpS) { inpS.value = startVal; arrow(inpS); }
+              var inpF = row.querySelector('[name="' + p + '-finish"]');
+              if (inpF) { inpF.value = finishVal; arrow(inpF); }
+              return;
             }
-          }
-          if (d.finish_prev > 0) {
             var addBtn = row.querySelector('[data-action="add-inner-form"]');
-            if (addBtn) addBtn.click();
+            if (!addBtn) return;
+            addBtn.click();
             setTimeout(function() {
               var lastInner = row.querySelector('.custom_localization_labels_formset_tr:last-child');
-              if (lastInner) {
-                var idx2 = lastInner.querySelector('[name$="-marker_type"]');
-                if (idx2) {
-                  var m = idx2.name.match(/custom_localization_labels-localizations-' + i + '-form-(\d+)-/);
-                  if (m) {
-                    var mi = m[1];
-                    var ms = lastInner.querySelector('[name="custom_localization_labels-localizations-' + i + '-form-' + mi + '-start"]');
-                    if (ms) { ms.value = d.start_prev; arrow(ms); }
-                    var mf = lastInner.querySelector('[name="custom_localization_labels-localizations-' + i + '-form-' + mi + '-finish"]');
-                    if (mf) { mf.value = d.finish_prev; arrow(mf); }
-                  }
-                }
-              }
+              if (!lastInner) return;
+              var mt = lastInner.querySelector('[name$="-marker_type"]');
+              if (!mt) return;
+              var p = mt.name.replace('-marker_type', '');
+              mt.value = markerType;
+              mt.dispatchEvent(new Event('change', {bubbles:true}));
+              var inpS = lastInner.querySelector('[name="' + p + '-start"]');
+              if (inpS) { inpS.value = startVal; arrow(inpS); }
+              var inpF = lastInner.querySelector('[name="' + p + '-finish"]');
+              if (inpF) { inpF.value = finishVal; arrow(inpF); }
             }, 100);
+          }
+          if (d.finish_scale > 0) {
+            findInnerLocRow(row, '2', d.start_scale, d.finish_scale);
+          }
+          if (d.finish_prev > 0) {
+            findInnerLocRow(row, '1', d.start_prev, d.finish_prev);
           }
         });
 
