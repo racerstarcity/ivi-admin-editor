@@ -1,0 +1,62 @@
+name: Build macOS App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller Pillow
+
+      - name: Convert icon to .icns
+        run: |
+          python -c "
+          from PIL import Image
+          import subprocess, os
+          # Convert ico to png first
+          img = Image.open('ivi.ico')
+          # Get largest size
+          sizes = img.sizes if hasattr(img, 'sizes') else [(256, 256)]
+          if hasattr(img, 'sizes'):
+              for s in sorted(img.sizes, reverse=True):
+                  img = Image.open('ivi.ico')
+                  img = img.resize(s, Image.LANCZOS)
+                  break
+          else:
+              img = img.resize((256, 256), Image.LANCZOS)
+          img.save('ivi_temp.png', 'PNG')
+          # Use macOS sips to create iconset
+          os.makedirs('ivi.iconset', exist_ok=True)
+          for size in [16, 32, 64, 128, 256, 512]:
+              s = size
+              subprocess.run(['sips', '-z', str(s), str(s), 'ivi_temp.png',
+                           '--out', f'ivi.iconset/icon_{size}x{size}.png'], check=True)
+              if size != 512:
+                  subprocess.run(['sips', '-z', str(s*2), str(s*2), 'ivi_temp.png',
+                               '--out', f'ivi.iconset/icon_{size}x{size}@2x.png'], check=True)
+          subprocess.run(['iconutil', '-c', 'icns', 'ivi.iconset', '-o', 'ivi.icns'], check=True)
+          "
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller ivi_meta_mac.spec
+
+      - name: Upload .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IVI-Admin-Editor-macOS
+          path: dist/IVI Admin Editor.app

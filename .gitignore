@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+build/
+dist/
+ivi_meta.spec
+*.log
+network_settings.txt
+gostinitsa/
+**/__pycache__/
+
