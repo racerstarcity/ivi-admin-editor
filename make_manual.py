@@ -20,7 +20,7 @@ pdf.multi_cell(0, 7, "Утилита для инжеста и тестирова
                       "заполнение формы админки IVI\n\n", align="C")
 pdf.ln(6)
 pdf.set_font("Segoe", "", 10)
-pdf.cell(0, 6, "Версия: июль 2026", new_x="LMARGIN", new_y="NEXT", align="C")
+pdf.cell(0, 6, "Версия: август 2026 (v2.2)", new_x="LMARGIN", new_y="NEXT", align="C")
 pdf.cell(0, 6, "Распространяется с установщиком IVI_Admin_Editor_Setup.exe", new_x="LMARGIN", new_y="NEXT", align="C")
 
 # ============== 1. ОБЗОР ==============
@@ -65,8 +65,11 @@ pdf.multi_cell(0, 5,
 pdf.ln(4)
 
 if pdf.page_no() > 1:
-    pdf.image(SCREENSHOT_MAIN, x=20, w=170)
-    pdf.ln(5)
+    try:
+        pdf.image(SCREENSHOT_MAIN, x=20, w=170)
+        pdf.ln(5)
+    except FileNotFoundError:
+        pass
 
 # ============== 3. ПАНЕЛЬ МЕТОК ==============
 pdf.add_page()
@@ -75,17 +78,19 @@ pdf.cell(0, 10, "3. Панель меток (MarkersPanel)", new_x="LMARGIN", ne
 pdf.ln(2)
 pdf.set_font("Segoe", "", 10)
 pdf.multi_cell(0, 5,
-"Открывается кнопкой «Метки» из главного окна. Окно 480x720.\n\n"
+"Открывается кнопкой «Метки» из главного окна. Окно можно разворачивать "
+"и менять размер (мин. 400x500).\n\n"
 "Таймер (вверху): время в формате ЧЧ:ММ:СС. Синхронизируется с браузерным плеером: "
 "play/pause/seek в браузере обновляет таймер.\n\n"
 "Кнопки управления:\n"
-"- Пауза — запустить/остановить таймер вручную\n"
-"- Сброс — сбросить таймер в 00:00:00\n"
-"- Отм. — отменить последнюю добавленную метку\n"
-"- Очистить — удалить ВСЕ метки")
+"- «Отменить» — отменить последнее действие (можно нажимать много раз)\n"
+"- «Очистить» — удалить ВСЕ метки")
 pdf.ln(4)
 
-pdf.image(SCREENSHOT_MARKERS, x=40, w=130)
+try:
+    pdf.image(SCREENSHOT_MARKERS, x=40, w=130)
+except FileNotFoundError:
+    pass
 pdf.ln(95)
 
 pdf.set_font("Segoe", "", 10)
@@ -99,7 +104,8 @@ pdf.multi_cell(0, 5,
 "5 — «Кон.пред.» (фиолетовый) — конец предыдущей\n"
 "6 — «Построл» (оранжевый) — время титров\n"
 "7 — «Длит.» (красный) — общая длительность видео\n"
-"    (автоматически определяется из плеера при первом воспроизведении)")
+"    (автоматически определяется из плеера при первом воспроизведении\n"
+"     и auto-заполняется в поле, если ещё не установлено)")
 
 # ============== 4. ХОТКЕИ ИЗ БРАУЗЕРА ==============
 pdf.add_page()
@@ -175,11 +181,16 @@ pdf.multi_cell(0, 5,
 "- При нажатии (или Ctrl+M) отправляет fetch на localhost:8766\n"
 "- Заполняет поля:\n"
 "  midrolls → id_middroll-*-time\n"
-"  start_scale / finish_scale → localization_labels-0\n"
-"  start_prev / finish_prev → localization_labels-1\n"
+"  start_scale / finish_scale → localization_labels (основные маркеры)\n"
+"  start_prev / finish_prev → localization_labels\n"
 "  postroll → id_credits_begin_time\n"
 "  duration → id_duration и localizations-*-duration\n"
-"- Автоматически добавляет строки формсетов\n"
+"- Для каждой локализации заполняет вложенные маркеры\n"
+"  (custom_localization_labels) — заставки и предыдущие в каждом языке\n"
+"- Автоматически добавляет строки localization_labels и вложенные формсеты,\n"
+"  если их нет; использует первую пустую строку, не создавая дубли\n"
+"- Не удаляет существующие — находит строки по marker_type:\n"
+"  2 = заставка, 1 = предыдущая; остальные типы не трогает\n"
 "- Показывает alert «Готово! Форма заполнена.»")
 pdf.ln(4)
 
@@ -243,20 +254,31 @@ pdf.multi_cell(0, 5,
 "1. Запустите IVI_Admin_Editor_Setup.exe от имени администратора\n"
 "2. Установщик создаст:\n"
 "   - C:\\Program Files\\IVI Admin Editor\\ivi_meta.exe\n"
-"   - Папку с расширением для Chrome в C:\\Program Files\\IVI Admin Editor\\ivi_ext\\\n"
-"   - Ярлык «IVI Admin Editor» на рабочем столе (опционально)\n"
-"   - Ярлык «IVI Admin Editor (Chrome)» для запуска с расширением (опционально)\n"
+"   - C:\\Program Files\\IVI Admin Editor\\ivi_ext_loader.exe\n"
+"   - Папку с расширением в C:\\Program Files\\IVI Admin Editor\\ivi_ext\\\n"
+"   - Ярлык «IVI Admin Editor» — запуск основного приложения\n"
+"   - Ярлык «IVI Admin Editor (Chrome)» — запуск Chrome с расширением\n"
+"   - Ярлык «IVI Admin Editor (Яндекс)» — запуск Яндекса с расширением\n"
+"   - Автозагрузку расширения в Яндекс.Браузере через ivi_ext_loader\n"
 "3. После установки программа запустится автоматически (если отмечено)\n\n"
-"Установка Chrome-расширения (вручную):\n"
+"Расширение браузера:\n"
+"- Chrome/Edge: Chrome 137+ отключил --load-extension, поэтому используется "
+"ярлык «IVI Admin Editor (Chrome)». Открывает браузер с отдельным профилем и "
+"автоматически загружает расширение (рабочий профиль не затрагивается).\n"
+"- Яндекс.Браузер: расширение загружается в обычном профиле. При каждом "
+"запуске ivi_ext_loader переустанавливает расширение через CDP-pipe "
+"(обход отключения unpacked-расширений Яндексом).\n"
+"- При повторном запуске ivi_ext_loader завершается с кодом 0\n"
+"  («уже запущен с расширением»).\n\n"
+"Ручная установка расширения (запасной вариант):\n"
 "1. Открыть chrome://extensions/\n"
 "2. Включить «Режим разработчика»\n"
 "3. Нажать «Загрузить распакованное расширение»\n"
 "4. Выбрать папку C:\\Program Files\\IVI Admin Editor\\ivi_ext\\\n\n"
-"Либо в установщике отметить «Установить расширение для Chrome и Яндекс.Браузер» — "
-"будет создан ярлык для запуска браузера с расширением.\n\n"
 "Установка из исходников:\n"
 "  pip install pyinstaller\n"
 "  pyinstaller ivi_meta.spec --clean --noconfirm\n"
+"  pyinstaller ivi_ext_loader.spec --clean --noconfirm\n"
 "  iscc installer.iss")
 
 pdf.output("C:\\Users\\user\\AppData\\Local\\Temp\\IVI Admin Editor.pdf")

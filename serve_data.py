@@ -3,7 +3,7 @@ import os
 import sys
 import threading
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import scrolledtext, ttk
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 _BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
@@ -73,8 +73,8 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("ИВИ")
-        self.geometry("520x540")
-        self.resizable(False, False)
+        self.geometry("960x600")
+        self.resizable(True, True)
         try:
             ico = self._res_path("ivi.ico")
             if os.path.exists(ico):
@@ -85,7 +85,18 @@ class App(tk.Tk):
         self.server = None
         self.server_thread = None
         self.com_thread = None
-        self.markers_window = None
+        self.configure(bg="#f0f0f0")
+        self.pw = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
+        self.pw.pack(fill="both", expand=True, padx=6, pady=6)
+
+        left_frame = tk.Frame(self.pw, bg="#f0f0f0")
+        right_frame = tk.Frame(self.pw, bg="#f0f0f0")
+        self.right_frame = right_frame
+        self.pw.add(left_frame, weight=1)
+        self.pw.add(right_frame, weight=1)
+        self.after(100, lambda: self.pw.sashpos(0, 380))
+        
+        self.markers_panel = MarkersPanel(right_frame, self)
         self.markers_data = None
 
         self._logo_img = None
@@ -94,37 +105,40 @@ class App(tk.Tk):
             ico_path = self._res_path("ivi.ico")
             if os.path.exists(ico_path):
                 img = Image.open(ico_path)
-                # берём самый большой размер (0)
                 img = img.resize((96, 96), Image.LANCZOS)
                 self._logo_img = ImageTk.PhotoImage(img)
-                tk.Label(self, image=self._logo_img).pack(pady=(8, 0))
+                tk.Label(left_frame, image=self._logo_img).pack(pady=(8, 0))
         except Exception:
             pass
-        tk.Label(self, text="Video Tester", font=("Segoe UI", 12), fg="#555").pack(pady=(0, 2))
+        tk.Label(left_frame, text="Video Tester", font=("Segoe UI", 12), fg="#555").pack(pady=(0, 2))
         self.status_var = tk.StringVar(value="Статус: запуск...")
-        tk.Label(self, textvariable=self.status_var, fg="#2563eb", font=("Segoe UI", 11, "bold")).pack(pady=6)
+        tk.Label(left_frame, textvariable=self.status_var, fg="#2563eb", font=("Segoe UI", 11, "bold")).pack(pady=6)
 
-        url_frame = tk.Frame(self)
+        url_frame = tk.Frame(left_frame)
         url_frame.pack(pady=2)
         self.url_label = tk.Label(url_frame, font=("Segoe UI", 10))
         self.url_label.pack()
 
-        log_frame = tk.LabelFrame(self, text="  Лог  ", font=("Segoe UI", 9))
+        log_frame = tk.LabelFrame(left_frame, text="  Лог  ", font=("Segoe UI", 9))
         log_frame.pack(fill="both", expand=True, padx=12, pady=(6, 8))
         self.log_area = scrolledtext.ScrolledText(log_frame, height=8, font=("Consolas", 9), wrap=tk.WORD, bg="#f8f9fa", state=tk.NORMAL)
         self.log_area.pack(fill="both", expand=True, padx=4, pady=4)
         tk.Button(log_frame, text="📋 Копировать лог", command=self.copy_log, font=("Segoe UI", 9), padx=10, pady=2).pack(pady=(0, 4))
 
-        btn_frame = tk.Frame(self)
+        btn_frame = tk.Frame(left_frame)
         btn_frame.pack(pady=(0, 10))
         self.stop_btn = tk.Button(btn_frame, text="Остановить сервер", command=self.stop, bg="#dc3545", fg="white", font=("Segoe UI", 10, "bold"), padx=20, pady=4)
         self.stop_btn.pack(side=tk.LEFT, padx=4)
-        tk.Button(btn_frame, text="Открыть в браузере", command=self.open_browser, font=("Segoe UI", 10), padx=20, pady=4).pack(side=tk.LEFT, padx=4)
         tk.Button(btn_frame, text="Отчет", command=self.open_report, font=("Segoe UI", 10), padx=16, pady=4).pack(side=tk.LEFT, padx=4)
-        tk.Button(btn_frame, text="Метки", command=self.open_markers, font=("Segoe UI", 10), padx=16, pady=4).pack(side=tk.LEFT, padx=4)
 
         self.log("Запуск сервера...")
         self.after(100, self.start)
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def on_close(self):
+        if self.markers_panel:
+            self.markers_panel.save_to_disk()
+        self.destroy()
 
     def _res_path(self, name):
         if getattr(sys, 'frozen', False):
@@ -155,8 +169,8 @@ class App(tk.Tk):
         self.after(3000, lambda: self.open_report())
 
     def _poll_sync(self):
-        panel = self.markers_window
-        if panel and panel.winfo_exists():
+        panel = self.markers_panel
+        if panel is not None:
             cmd = _sync_state.pop("cmd", None)
             t = _sync_state.pop("time", None)
             if cmd == "seek":
@@ -221,28 +235,11 @@ class App(tk.Tk):
             pass
         super().destroy()
 
-    def open_markers(self):
-        if not hasattr(self, 'markers_window') or not self.markers_window or not self.markers_window.winfo_exists():
-            self.markers_window = MarkersPanel(self)
-        else:
-            self.markers_window.lift()
-
-
-class MarkersPanel(tk.Toplevel):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-        self.title("Метки")
-        self.geometry("520x760")
-        self.minsize(400, 500)
-        self.resizable(True, True)
-        self.attributes("-topmost", True)
-        try:
-            ico = parent._res_path("ivi.ico")
-            if os.path.exists(ico):
-                self.iconbitmap(ico)
-        except Exception:
-            pass
+class MarkersPanel(tk.Frame):
+    def __init__(self, master, app):
+        super().__init__(master)
+        self.app = app
+        self.configure(bg="#f0f0f0")
 
         self.running = False
         self.elapsed = 0.0
@@ -254,12 +251,9 @@ class MarkersPanel(tk.Toplevel):
         self._timer_job = None
         self._sync_markers()
 
-        global _current_panel
-        _current_panel = self
-
         self._build_ui()
         self._update_template_label()
-        self.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.pack(fill="both", expand=True)
 
     def _build_ui(self):
         # Timer
@@ -461,7 +455,7 @@ class MarkersPanel(tk.Toplevel):
             with open(MARKERS_PATH, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            self.parent.log(f"Ошибка сохранения меток: {e}")
+            self.app.log(f"Ошибка сохранения меток: {e}")
 
     def _load_template(self):
         default = {"start_scale": 0, "finish_scale": 0, "start_prev": 0, "finish_prev": 0, "postroll": 0, "duration": 0, "midrolls": []}
@@ -479,7 +473,7 @@ class MarkersPanel(tk.Toplevel):
             with open(TEMPLATE_PATH, "w", encoding="utf-8") as f:
                 json.dump(self._template, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            self.parent.log(f"Ошибка сохранения шаблона: {e}")
+            self.app.log(f"Ошибка сохранения шаблона: {e}")
 
     def template_save(self):
         self._template = self._data.copy()
@@ -594,7 +588,7 @@ class MarkersPanel(tk.Toplevel):
         text = "midrolls=" + ",".join(str(m) for m in d["midrolls"]) + "  " + "  ".join(parts)
         self.clipboard_clear()
         self.clipboard_append(text)
-        self.parent.log(f"📋 Метки скопированы в буфер обмена")
+        self.app.log(f"📋 Метки скопированы в буфер обмена")
         self._add_log(f"📋 Скопировано: {text[:80]}...")
 
     def _sync_markers(self):
@@ -661,9 +655,7 @@ class MarkersPanel(tk.Toplevel):
         self._update_summary()
         self._sync_markers()
 
-    def on_close(self):
-        global _current_panel
-        _current_panel = None
+    def save_to_disk(self):
         self.running = False
         if self._timer_job:
             self.after_cancel(self._timer_job)
@@ -671,12 +663,11 @@ class MarkersPanel(tk.Toplevel):
         self._save_markers()
         global _markers_data
         _markers_data = self._data.copy()
-        if hasattr(self.parent, 'markers_data'):
-            self.parent.markers_data = self._data.copy()
+        if hasattr(self.app, 'markers_data'):
+            self.app.markers_data = self._data.copy()
         cnt = len(self._data.get("midrolls", []))
-        self.parent.log(f"Метки сохранены: {cnt} мидролов, файл {MARKERS_PATH}")
-        self.parent.log(f"  localhost:8766/markers — данные меток")
-        self.destroy()
+        self.app.log(f"Метки сохранены: {cnt} мидролов, файл {MARKERS_PATH}")
+        self.app.log(f"  localhost:8766/markers — данные меток")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+
 a = Analysis(
-    ['serve_data.py'],
+    ['C:\\Users\\user\\Documents\\New OpenCode Project\\ivi_ext_loader.py'],
     pathex=[],
     binaries=[],
-    datas=[('ivi.icns', '.')],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -21,7 +22,8 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='ivi_meta',
+    name='ivi_ext_loader',
+    icon=r'C:\Users\user\Documents\New OpenCode Project\ivi.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -34,20 +36,4 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-)
-
-app = BUNDLE(
-    exe,
-    a.binaries,
-    a.datas,
-    [],
-    name='IVI Admin Editor',
-    icon='ivi.icns',
-    bundle_identifier='com.ivieditor.admin',
-    info_plist={
-        'NSHighResolutionCapable': True,
-        'CFBundleDisplayName': 'IVI Admin Editor',
-        'CFBundleVersion': '2.2',
-        'CFBundleShortVersionString': '2.2',
-    },
 )

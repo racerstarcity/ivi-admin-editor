@@ -58,18 +58,24 @@
           if (!baseIdx) return;
           var idx0 = parseInt(baseIdx[0]);
 
-          // Try to find existing row with this marker_type
+          // Try to find existing row with this marker_type, or first empty row
           var allTypes = document.querySelectorAll('[name$="-marker_type"]');
           var existingRow = null;
+          var emptyRow = null;
           allTypes.forEach(function(el) {
+            if (el.name.indexOf('__prefix__') != -1) return;
             if (el.value == markerType) existingRow = el;
+            if (!emptyRow && el.value == '') emptyRow = el;
           });
-          if (existingRow) {
-            var rowPrefix = existingRow.name.replace('-marker_type', '');
-            document.getElementById(rowPrefix + '-start').value = startVal;
-            arrow(document.getElementById(rowPrefix + '-start'));
-            document.getElementById(rowPrefix + '-finish').value = finishVal;
-            arrow(document.getElementById(rowPrefix + '-finish'));
+          var target = existingRow || emptyRow;
+          if (target) {
+            var rowPrefix = target.name.replace('-marker_type', '');
+            target.value = markerType;
+            target.dispatchEvent(new Event('change', {bubbles:true}));
+            document.getElementById('id_' + rowPrefix + '-start').value = startVal;
+            arrow(document.getElementById('id_' + rowPrefix + '-start'));
+            document.getElementById('id_' + rowPrefix + '-finish').value = finishVal;
+            arrow(document.getElementById('id_' + rowPrefix + '-finish'));
             return;
           }
 
@@ -118,36 +124,46 @@
           var cr2 = row.querySelector('[name="localizations-' + i + '-credits_begin_time"]');
           if (cr2) { cr2.value = d.postroll; arrow(cr2); }
           function findInnerLocRow(row, markerType, startVal, finishVal) {
-            var innerSel = row.querySelector('[name^="custom_localization_labels-localizations-' + i + '-form-"][name$="-marker_type"]');
-            if (!innerSel) return;
+            var allTypes = row.querySelectorAll('[name^="custom_localization_labels-localizations-' + i + '-form-"][name$="-marker_type"]');
             var existing = null;
-            row.querySelectorAll('[name^="custom_localization_labels-localizations-' + i + '-form-"][name$="-marker_type"]').forEach(function(el) {
+            var emptyRow = null;
+            allTypes.forEach(function(el) {
+              if (el.name.indexOf('__prefix__') != -1) return;
               if (el.value == markerType) existing = el;
+              if (!emptyRow && el.value == '') emptyRow = el;
             });
-            if (existing) {
-              var p = existing.name.replace('-marker_type', '');
+            var target = existing || emptyRow;
+            if (target) {
+              var p = target.name.replace('-marker_type', '');
+              target.value = markerType;
+              target.dispatchEvent(new Event('change', {bubbles:true}));
               var inpS = row.querySelector('[name="' + p + '-start"]');
               if (inpS) { inpS.value = startVal; arrow(inpS); }
               var inpF = row.querySelector('[name="' + p + '-finish"]');
               if (inpF) { inpF.value = finishVal; arrow(inpF); }
               return;
             }
-            var addBtn = row.querySelector('[data-action="add-inner-form"]');
-            if (!addBtn) return;
-            addBtn.click();
-            setTimeout(function() {
-              var lastInner = row.querySelector('.custom_localization_labels_formset_tr:last-child');
-              if (!lastInner) return;
-              var mt = lastInner.querySelector('[name$="-marker_type"]');
-              if (!mt) return;
-              var p = mt.name.replace('-marker_type', '');
-              mt.value = markerType;
-              mt.dispatchEvent(new Event('change', {bubbles:true}));
-              var inpS = lastInner.querySelector('[name="' + p + '-start"]');
-              if (inpS) { inpS.value = startVal; arrow(inpS); }
-              var inpF = lastInner.querySelector('[name="' + p + '-finish"]');
-              if (inpF) { inpF.value = finishVal; arrow(inpF); }
-            }, 100);
+            var tf = row.querySelector('[name^="custom_localization_labels-localizations-' + i + '-form-TOTAL_FORMS"]');
+            if (!tf) return;
+            var n = parseInt(tf.value);
+            tf.value = n + 1;
+            var emptyForm = row.querySelector('.empty-form.nested-loc-form');
+            if (!emptyForm) return;
+            var newRow = emptyForm.cloneNode(true);
+            newRow.classList.remove('empty-form');
+            newRow.querySelectorAll('[name],[id]').forEach(function(el) {
+              if (el.name) el.name = el.name.replace(/form-__prefix__-/, 'form-' + n + '-');
+              if (el.id) el.id = el.id.replace(/form-__prefix__-/, 'form-' + n + '-');
+              if (el.type == 'checkbox') el.checked = false;
+              if (el.type != 'select-one') el.value = '';
+            });
+            emptyForm.parentNode.insertBefore(newRow, emptyForm);
+            var mt = newRow.querySelector('[name$="-marker_type"]');
+            if (mt) { mt.value = markerType; mt.dispatchEvent(new Event('change', {bubbles:true})); }
+            var inpS = newRow.querySelector('[name$="-start"]');
+            if (inpS) { inpS.value = startVal; arrow(inpS); }
+            var inpF = newRow.querySelector('[name$="-finish"]');
+            if (inpF) { inpF.value = finishVal; arrow(inpF); }
           }
           if (d.finish_scale > 0) {
             findInnerLocRow(row, '2', d.start_scale, d.finish_scale);
