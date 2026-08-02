@@ -3,7 +3,7 @@
 
 [Setup]
 AppName=IVI Admin Editor
-AppVersion=2.2
+AppVersion=2.3
 AppPublisher=Кравченко И.В.
 AppPublisherURL=https://ivi.ru
 DefaultDirName={autopf}\IVI Admin Editor
@@ -24,7 +24,7 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 
 [Tasks]
 Name: desktopicon; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Ярлыки:"
-Name: chrome_ext; Description: "Подключить расширение IVI Admin Fill: ярлык «IVI Admin Editor (Браузер)» для запуска браузера с расширением"; GroupDescription: "Расширение браузера:"
+Name: chrome_ext; Description: "Подключить расширение IVI Admin Fill: ярлыки для запуска браузера с расширением (Chrome, Яндекс, Opera, Firefox)"; GroupDescription: "Расширение браузера:"
 Name: launch_after; Description: "Запустить IVI Admin Editor после установки"; GroupDescription: "Запуск:"
 Name: show_manual; Description: "Открыть инструкцию после установки"; GroupDescription: "Запуск:"
 
@@ -47,6 +47,10 @@ Name: "{autoprograms}\IVI Admin Editor\Chrome (с расширением)"; File
 Name: "{autodesktop}\IVI Admin Editor (Chrome)"; Filename: "{app}\ivi_ext_loader.exe"; Parameters: "--browser=chrome https://b2b.ivi.ru"; WorkingDir: "{app}"; Tasks: chrome_ext; IconFilename: "{app}\ivi_meta.exe"
 Name: "{autoprograms}\IVI Admin Editor\Яндекс (с расширением)"; Filename: "{app}\ivi_ext_loader.exe"; Parameters: "--browser=yandex https://b2b.ivi.ru"; WorkingDir: "{app}"; Tasks: chrome_ext; IconFilename: "{app}\ivi_meta.exe"
 Name: "{autodesktop}\IVI Admin Editor (Яндекс)"; Filename: "{app}\ivi_ext_loader.exe"; Parameters: "--browser=yandex https://b2b.ivi.ru"; WorkingDir: "{app}"; Tasks: chrome_ext; IconFilename: "{app}\ivi_meta.exe"
+Name: "{autoprograms}\IVI Admin Editor\Opera (с расширением)"; Filename: "{app}\ivi_ext_loader.exe"; Parameters: "--browser=opera https://b2b.ivi.ru"; WorkingDir: "{app}"; Tasks: chrome_ext; IconFilename: "{app}\ivi_meta.exe"
+Name: "{autodesktop}\IVI Admin Editor (Opera)"; Filename: "{app}\ivi_ext_loader.exe"; Parameters: "--browser=opera https://b2b.ivi.ru"; WorkingDir: "{app}"; Tasks: chrome_ext; IconFilename: "{app}\ivi_meta.exe"
+Name: "{autoprograms}\IVI Admin Editor\Firefox (с расширением)"; Filename: "{app}\ivi_ext_loader.exe"; Parameters: "--browser=firefox https://b2b.ivi.ru"; WorkingDir: "{app}"; Tasks: chrome_ext; IconFilename: "{app}\ivi_meta.exe"
+Name: "{autodesktop}\IVI Admin Editor (Firefox)"; Filename: "{app}\ivi_ext_loader.exe"; Parameters: "--browser=firefox https://b2b.ivi.ru"; WorkingDir: "{app}"; Tasks: chrome_ext; IconFilename: "{app}\ivi_meta.exe"
 
 [Run]
 Filename: "{app}\ivi_meta.exe"; Description: "Запустить IVI Admin Editor"; Tasks: launch_after; Flags: nowait postinstall skipifsilent

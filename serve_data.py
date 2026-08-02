@@ -15,6 +15,8 @@ PORT = 8766
 
 _markers_data = {}  # data from MarkersPanel
 _sync_state = {"play": False, "time": None, "cmd": None}  # auto-sync from browser
+_import_req_id = 0  # last issued import request id
+_import_reply = None  # dict {"id": n, "data": {...} | "error": "..."} from extension
 
 
 def get_data():
@@ -25,10 +27,18 @@ def get_data():
 
 
 class Handler(BaseHTTPRequestHandler):
+    def _headers(self):
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
     def do_GET(self):
         path = self.path.split("?")[0]
         if path == "/markers":
             data = _markers_data.copy()
+        elif path == "/import_request":
+            data = {"req_id": _import_req_id}
         elif path == "/sync":
             from urllib.parse import urlparse, parse_qs
             qs = parse_qs(urlparse(self.path).query)
@@ -61,10 +71,35 @@ class Handler(BaseHTTPRequestHandler):
         else:
             data = get_data()
         self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._headers()
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
+
+    def do_POST(self):
+        global _import_reply
+        path = self.path.split("?")[0]
+        length = int(self.headers.get("Content-Length", 0) or 0)
+        body = self.rfile.read(length) if length else b""
+        data = {"ok": False}
+        if path == "/import":
+            try:
+                payload = json.loads(body.decode("utf-8") or "{}")
+                if isinstance(payload, dict) and payload.get("id") is not None:
+                    _import_reply = payload
+                    data = {"ok": True}
+            except Exception:
+                pass
+        self.send_response(200)
+        self._headers()
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self._headers()
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def log_message(self, *args):
         pass
 
@@ -171,6 +206,11 @@ class App(tk.Tk):
     def _poll_sync(self):
         panel = self.markers_panel
         if panel is not None:
+            global _import_reply
+            reply = _import_reply
+            if reply is not None:
+                _import_reply = None
+                panel.handle_import_reply(reply)
             cmd = _sync_state.pop("cmd", None)
             t = _sync_state.pop("time", None)
             if cmd == "seek":
@@ -268,6 +308,7 @@ class MarkersPanel(tk.Frame):
         buttons = [
             ("↩ Отменить", self.undo),
             ("✕ Очистить", self.clear_all),
+            ("⬇ Импорт", self.import_from_browser),
         ]
         for text, cmd in buttons:
             tk.Button(btn_frame, text=text, command=cmd, font=("Segoe UI", 9), padx=8, pady=2).pack(side=tk.LEFT, padx=2)
@@ -399,7 +440,7 @@ class MarkersPanel(tk.Frame):
             row += 1
 
     def _time_from_str(self, s):
-        s = s.strip()
+        s = s.strip().replace(" ", "").replace("\u00a0", "")
         if not s:
             return 0
         try:
@@ -594,6 +635,44 @@ class MarkersPanel(tk.Frame):
     def _sync_markers(self):
         global _markers_data
         _markers_data = self._data.copy()
+
+    def import_from_browser(self):
+        """Запросить у расширения данные из открытой карточки админки."""
+        global _import_req_id, _import_reply
+        _import_req_id += 1
+        _import_reply = None
+        self.app.log(f"Импорт: запрос #{_import_req_id} отправлен в браузер — "
+                     "подождите пару секунд")
+        self._add_log(f"Импорт: жду данные из карточки (запрос #{_import_req_id})...")
+
+    def handle_import_reply(self, payload):
+        """Применить данные, присланные расширением из карточки."""
+        if not isinstance(payload, dict):
+            return
+        rid = payload.get("id")
+        if rid is None or rid != _import_req_id:
+            return  # устаревший ответ
+        if payload.get("error"):
+            self._add_log(f"Импорт: {payload['error']}")
+            self.app.log(f"Импорт: {payload['error']}")
+            return
+        data = payload.get("data") or {}
+        d = self._data
+        if isinstance(data.get("midrolls"), list):
+            d["midrolls"] = [int(x) for x in data["midrolls"]
+                             if isinstance(x, (int, float))]
+        for k in ("start_scale", "finish_scale", "start_prev",
+                  "finish_prev", "postroll", "duration"):
+            if k in data:
+                try:
+                    d[k] = int(float(data[k]))
+                except (TypeError, ValueError):
+                    pass
+        self._update_summary()
+        self._sync_markers()
+        self._save_markers()
+        self._add_log("Импорт: данные из карточки загружены в программу")
+        self.app.log("Импорт: данные из карточки загружены в программу")
 
     def mark_midroll(self):
         t = self.current_time

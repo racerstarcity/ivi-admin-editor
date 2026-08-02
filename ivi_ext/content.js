@@ -285,3 +285,94 @@
     });
   });
 })();
+
+// Import from card: collect form data back into ivi_meta
+(function() {
+  var lastReqId = 0;
+
+  function collectFromForm() {
+    var out = {
+      midrolls: [], start_scale: 0, finish_scale: 0,
+      start_prev: 0, finish_prev: 0, postroll: 0, duration: 0
+    };
+    var found = false;
+
+    // поля админки имеют class="thousand_separator" — значения вида "2 550"
+    function num(v) {
+      if (v === undefined || v === null) return NaN;
+      return parseFloat(String(v).replace(/[^\d.\-]/g, ''));
+    }
+
+    var tf = document.getElementById('id_middroll-TOTAL_FORMS');
+    if (tf) {
+      var count = parseInt(tf.value) || 0;
+      for (var i = 0; i < count; i++) {
+        var inp = document.getElementById('id_middroll-' + i + '-time');
+        if (inp && inp.value !== '') {
+          var v = num(inp.value);
+          if (!isNaN(v)) { out.midrolls.push(Math.round(v)); found = true; }
+        }
+      }
+    }
+
+    document.querySelectorAll('[name$="-marker_type"]').forEach(function(el) {
+      if (el.name.indexOf('__prefix__') != -1) return;
+      var p = el.name.replace('-marker_type', '');
+      var s = document.getElementById('id_' + p + '-start');
+      var f = document.getElementById('id_' + p + '-finish');
+      var sv = s ? num(s.value) : NaN;
+      var fv = f ? num(f.value) : NaN;
+      if (el.value == '2') {
+        out.start_scale = isNaN(sv) ? 0 : Math.round(sv);
+        out.finish_scale = isNaN(fv) ? 0 : Math.round(fv);
+        found = true;
+      } else if (el.value == '1') {
+        out.start_prev = isNaN(sv) ? 0 : Math.round(sv);
+        out.finish_prev = isNaN(fv) ? 0 : Math.round(fv);
+        found = true;
+      }
+    });
+
+    var cr = document.getElementById('id_credits_begin_time');
+    if (cr && cr.value !== '') {
+      var pv = num(cr.value);
+      if (!isNaN(pv)) { out.postroll = Math.round(pv); found = true; }
+    }
+    var du = document.getElementById('id_duration');
+    if (du && du.value !== '') {
+      var dv = num(du.value);
+      if (!isNaN(dv)) { out.duration = Math.round(dv); found = true; }
+    }
+
+    return {data: out, found: found};
+  }
+
+  function pollImport() {
+    fetch('http://localhost:8766/import_request')
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        var rid = res.req_id || 0;
+        if (rid === 0 || rid === lastReqId) return;
+        var collected = collectFromForm();
+        var payload;
+        if (!collected.found) {
+          payload = {id: rid, error: 'форма карточки не найдена на этой странице — откройте карточку'};
+        } else {
+          payload = {id: rid, data: collected.data};
+        }
+        fetch('http://localhost:8766/import', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        }).then(function() {
+          lastReqId = rid;
+        }).catch(function(e) {
+          console.error('ivi-import-post error:', e);
+        });
+      })
+      .catch(function() {});
+  }
+
+  setInterval(pollImport, 2000);
+  setTimeout(pollImport, 500);
+})();

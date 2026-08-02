@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-"""Автозагрузчик расширения IVI Admin Fill в Chrome/Edge/Яндекс.
+"""Автозагрузчик расширения IVI Admin Fill в Chrome/Edge/Яндекс/Opera/Firefox.
 
 Запускает браузер с профилем, подключается по CDP pipe
 (Extensions.loadUnpacked) и загружает расширение из папки ivi_ext.
 
-Chrome/Edge — отдельный профиль chrome_profile (расширение сохраняется).
+Chrome/Edge/Opera — отдельный профиль (расширение сохраняется).
 Яндекс — основной профиль браузера; т.к. Яндекс отключает unpacked
 расширения при обычном старте (disable_reasons=[1]), loader при каждом
 запуске делает uninstall + loadUnpacked, что даёт enabled=True в сессии.
+Firefox — не Chromium (нет CDP), расширение загружается через web-ext
+(`npx --yes web-ext run`), профиль создаётся отдельный.
 
 Коды выхода:
   0 — расширение загружено (или браузер уже запущен с расширением)
@@ -233,6 +235,16 @@ class PipeConn(object):
 
 # ------------------------------------------------------------- поиск браузера ---
 
+def _glob_opera_exe():
+    """Найти настоящий opera.exe (лежит в версированной папке)."""
+    for root in (r"C:\Program Files\Opera", r"C:\Program Files (x86)\Opera"):
+        if os.path.isdir(root):
+            for dirpath, _, files in os.walk(root):
+                if "opera.exe" in files:
+                    return os.path.join(dirpath, "opera.exe")
+    return None
+
+
 def find_browser(which=None):
     candidates = [
         r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -244,11 +256,22 @@ def find_browser(which=None):
         r"C:\Program Files\Yandex\YandexBrowser\Application\browser.exe",
         r"C:\Program Files (x86)\Yandex\YandexBrowser\Application\browser.exe",
         os.path.expandvars(r"%LOCALAPPDATA%\Yandex\YandexBrowser\Application\browser.exe"),
+        r"C:\Program Files\Opera\launcher.exe",
+        r"C:\Program Files (x86)\Opera\launcher.exe",
+        r"C:\Program Files\Mozilla Firefox\firefox.exe",
+        r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Mozilla Firefox\firefox.exe"),
     ]
+    opera_exe = _glob_opera_exe()
+    if opera_exe:
+        candidates.insert(0, opera_exe)
     aliases = {
         "chrome": lambda p: "chrome.exe" in p.lower(),
         "edge": lambda p: "msedge.exe" in p.lower(),
         "yandex": lambda p: "browser.exe" in p.lower() and "yandex" in p.lower(),
+        "opera": lambda p: "opera.exe" in p.lower() or
+                           ("launcher.exe" in p.lower() and "opera" in p.lower()),
+        "firefox": lambda p: "firefox.exe" in p.lower(),
     }
     if which:
         if os.path.isfile(which):
@@ -285,7 +308,7 @@ def show_error(msg):
 
 def is_profile_running(profile_dir):
     """Браузер уже запущен с нашим профилем?"""
-    names = "Name='chrome.exe' or Name='msedge.exe' or Name='browser.exe'"
+    names = "Name='chrome.exe' or Name='msedge.exe' or Name='browser.exe' or Name='opera.exe'"
     esc = re.escape(profile_dir)
     ps = (f"(Get-CimInstance Win32_Process -Filter \"{names}\") | "
           f"Where-Object {{ $_.CommandLine -match '{esc}' }} | "
@@ -379,6 +402,48 @@ def ensure_extension_enabled(conn, ext_id, ext_path, attempts=3):
     return False
 
 
+def launch_firefox(browser, ext_path, profile_dir, url=None):
+    """Firefox не поддерживает CDP-pipe — расширение грузим через web-ext.
+
+    Используется установленный web-ext либо `npx --yes web-ext` (скачает
+    при первом запуске). Профиль создаётся отдельный, аддон ставится как
+    временный и переустанавливается при каждом запуске."""
+    import shutil
+    cmd = None
+    web_ext = shutil.which("web-ext")
+    if web_ext:
+        cmd = [web_ext]
+    else:
+        npx = shutil.which("npx")
+        if npx:
+            cmd = [npx, "--yes", "web-ext"]
+    if not cmd:
+        show_error("Для Firefox нужен web-ext (Node.js/npm). Установите:\n"
+                   "npm install -g web-ext\n\n"
+                   "Или запустите Firefox и загрузите расширение вручную:\n"
+                   "about:debugging#/runtime/this-firefox → Load Temporary Add-on → "
+                   f"{ext_path}\\manifest.json")
+        return 1
+    run_args = cmd + [
+        "run",
+        "--source-dir", ext_path,
+        "--firefox", browser,
+        "--firefox-profile", profile_dir,
+        "--profile-create-if-missing",
+        "--keep-profile-changes",
+        "--no-input",
+    ]
+    if url:
+        run_args += ["--start-url", url]
+    log("Запуск Firefox: " + subprocess.list2cmdline(run_args))
+    try:
+        subprocess.Popen(run_args, creationflags=subprocess.CREATE_NO_WINDOW)
+        return 0
+    except Exception as e:
+        show_error(f"Не удалось запустить Firefox: {e}")
+        return 1
+
+
 def main():
     base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
     ext_path = os.path.join(base_dir, "ivi_ext")
@@ -392,20 +457,34 @@ def main():
             url = arg
         elif arg.lower().startswith("--browser="):
             which = arg.split("=", 1)[1].strip()
-        elif arg.lower() in ("chrome", "edge", "yandex"):
+        elif arg.lower() in ("chrome", "edge", "yandex", "opera", "firefox"):
             which = arg.lower()
 
     browser = find_browser(which)
     if not browser:
-        show_error("Браузер Chrome/Edge/Яндекс не найден.")
+        show_error("Браузер Chrome/Edge/Яндекс/Opera/Firefox не найден.")
         return 1
     if not os.path.isdir(ext_path):
         show_error(f"Папка расширения не найдена: {ext_path}")
         return 1
 
-    is_yandex = bool(which and "yandex" in which.lower()) or "browser.exe" in os.path.basename(browser).lower()
+    bname = os.path.basename(browser).lower()
+    is_yandex = bool(which and "yandex" in which.lower()) or "browser.exe" in bname
+    is_firefox = "firefox.exe" in bname or bool(which and "firefox" in which.lower())
+    is_opera = "opera.exe" in bname or ("launcher.exe" in bname and "opera" in browser.lower())
+
     if is_yandex:
         profile_dir = yandex_default_profile()
+    elif is_opera:
+        profile_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
+                                   "IVI Admin Editor", "opera_profile")
+
+    if is_firefox:
+        if url is None:
+            url = "https://b2b.ivi.ru"
+        os.makedirs(profile_dir, exist_ok=True)
+        log(f"Firefox: браузер={browser}, профиль={profile_dir}")
+        return launch_firefox(browser, ext_path, profile_dir, url)
 
     os.makedirs(profile_dir, exist_ok=True)
     log(f"Запуск: браузер={browser}, профиль={profile_dir}")
@@ -428,9 +507,9 @@ def main():
     parent_write, chrome_read = create_inheritable_pipe(peer_read=True)
     parent_read, chrome_write = create_inheritable_pipe(peer_read=False)
 
-    # URL для открытия: аргумент командной строки, для Яндекса — b2b.ivi.ru
-    if url is None:
-        url = "https://b2b.ivi.ru" if is_yandex else None
+    # URL для открытия: аргумент командной строки, для Яндекс/Opera — b2b.ivi.ru
+    if url is None and (is_yandex or is_opera):
+        url = "https://b2b.ivi.ru"
 
     try:
         conn_holder = launch_browser_with_pipe(browser, profile_dir,
